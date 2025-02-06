@@ -5,17 +5,23 @@ import os
 
 app = FastAPI()
 
-# ✅ Allow requests from anywhere (or specify LearnWorlds domain)
+# ✅ Allow LearnWorlds Requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change "*" to LearnWorlds domain if needed
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Set OpenAI API Key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# ✅ Load OpenAI API Key from Environment Variables
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if not openai_api_key:
+    print("❌ ERROR: OPENAI_API_KEY is missing!")
+else:
+    print(f"✅ Loaded OpenAI API Key: {openai_api_key[:5]}**********")
+
+openai.api_key = openai_api_key
 
 @app.post("/learnworlds-webhook")
 async def chatbot(request: Request):
@@ -23,15 +29,26 @@ async def chatbot(request: Request):
     question = data.get("question", "")
 
     if not question:
-        return {"answer": "I couldn't process that."}
+        print("❌ Error: No question received.")
+        return {"answer": "Error: No question received."}
 
     try:
+        print(f"✅ Received question: {question}")
+
+        # ✅ Make OpenAI API Call
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[{"role": "user", "content": question}]
         )
+
         answer = response["choices"][0]["message"]["content"]
+        print(f"✅ AI Response: {answer}")
         return {"answer": answer}
 
+    except openai.error.OpenAIError as e:
+        print(f"❌ OpenAI API Error: {str(e)}")
+        return {"answer": f"OpenAI API Error: {str(e)}"}
+
     except Exception as e:
-        return {"answer": "Sorry, I couldn't process that."}
+        print(f"❌ Unexpected Error: {str(e)}")
+        return {"answer": f"Unexpected Error: {str(e)}"}
