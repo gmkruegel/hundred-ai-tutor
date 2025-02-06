@@ -14,8 +14,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Load OpenAI API Key from Environment Variables
+# ✅ Load OpenAI API Key
 openai_api_key = os.getenv("OPENAI_API_KEY")
+print(f"DEBUG: OpenAI API Key from Render: {openai_api_key}")  # Debugging
+
 if not openai_api_key:
     print("❌ ERROR: OPENAI_API_KEY is missing!")
 else:
@@ -41,8 +43,10 @@ async def chatbot(request: Request):
             messages=[{"role": "user", "content": question}]
         )
 
+        # ✅ Extract AI Response Properly
         answer = response["choices"][0]["message"]["content"]
         print(f"✅ AI Response: {answer}")
+        
         return {"answer": answer}
 
     except openai.error.OpenAIError as e:
