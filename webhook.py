@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import openai
 import os
+from openai.error import OpenAIError  # ✅ Corrected import for OpenAI error handling
 
 app = FastAPI()
 
@@ -16,8 +17,6 @@ app.add_middleware(
 
 # ✅ Load OpenAI API Key
 openai_api_key = os.getenv("OPENAI_API_KEY")
-print(f"DEBUG: OpenAI API Key from Render: {openai_api_key}")  # Debugging
-
 if not openai_api_key:
     print("❌ ERROR: OPENAI_API_KEY is missing!")
 else:
@@ -43,13 +42,16 @@ async def chatbot(request: Request):
             messages=[{"role": "user", "content": question}]
         )
 
+        # ✅ Debugging: Print Full OpenAI Response
+        print(f"🔹 Full OpenAI Response: {response}")
+
         # ✅ Extract AI Response Properly
         answer = response["choices"][0]["message"]["content"]
         print(f"✅ AI Response: {answer}")
         
         return {"answer": answer}
 
-    except openai.error.OpenAIError as e:
+    except OpenAIError as e:  # ✅ Corrected OpenAI Error Handling
         print(f"❌ OpenAI API Error: {str(e)}")
         return {"answer": f"OpenAI API Error: {str(e)}"}
 
