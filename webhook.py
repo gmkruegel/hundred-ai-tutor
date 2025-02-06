@@ -1,33 +1,37 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 import openai
-import uvicorn
+import os
 
 app = FastAPI()
 
-# Set your OpenAI API key here
-openai.api_key = "your-openai-api-key"
+# ✅ Allow requests from anywhere (or specify LearnWorlds domain)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change "*" to LearnWorlds domain if needed
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Set OpenAI API Key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.post("/learnworlds-webhook")
-async def learnworlds_webhook(request: Request):
+async def chatbot(request: Request):
     data = await request.json()
-    
-    # Extract student question
-    student_question = data.get("question", "No question provided.")
+    question = data.get("question", "")
 
-    # Send question to OpenAI
-    response = openai.ChatCompletion.create(
-        model="gpt-4-turbo",
-        messages=[
-            {"role": "system", "content": "You are The Hundred % AI Tutor. Keep responses concise, insightful, and motivating. Align with The Hundred % brand identity."},
-            {"role": "user", "content": student_question}
-        ]
-    )
+    if not question:
+        return {"answer": "I couldn't process that."}
 
-    ai_response = response["choices"][0]["message"]["content"]
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": question}]
+        )
+        answer = response["choices"][0]["message"]["content"]
+        return {"answer": answer}
 
-    # Return the AI-generated answer
-    return {"answer": ai_response}
-
-# Run the API server
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    except Exception as e:
+        return {"answer": "Sorry, I couldn't process that."}
